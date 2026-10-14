@@ -1,0 +1,46 @@
+# Gradle & Build artifacts
+.gradle/
+build/
+/build
+**/build/
+.kotlin/
+out/
+*.class
+*.jar
+*.war
+
+# Local environment & secrets
+local.properties
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Local storage, staging & uploaded media
+staging/
+staginig/
+uploads/
+transfers/
+temp/
+*.db
+*.sqlite
+
+# SSL / Keystores / Keys
+*.jks
+*.p12
+*.pem
+*.crt
+*.key
+
+# IDE & Tooling
+.idea/
+*.iml
+.postman/
+.externalNativeBuild
+.cxx
+/captures
+
+# OS & Logs
+.DS_Store
+Thumbs.db
+*.log

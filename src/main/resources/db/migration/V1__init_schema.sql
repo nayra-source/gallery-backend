@@ -1,0 +1,71 @@
+CREATE TABLE IF NOT EXISTS devices (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NULL,
+    token_version INT DEFAULT 1 NOT NULL,
+    revoked BOOLEAN DEFAULT FALSE NOT NULL,
+    last_seen_at TIMESTAMP NULL,
+    is_online BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_users (
+    id UUID PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pairing_codes (
+    code VARCHAR(12) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE NOT NULL,
+    device_name_hint VARCHAR(255) NULL
+);
+
+CREATE TABLE IF NOT EXISTS media_metadata (
+    id UUID PRIMARY KEY,
+    device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    media_id BIGINT NOT NULL,
+    display_name VARCHAR(512) NULL,
+    mime_type VARCHAR(100) NULL,
+    size_bytes BIGINT NULL,
+    width INT NULL,
+    height INT NULL,
+    duration_ms INT NULL,
+    taken_at TIMESTAMP NULL,
+    album VARCHAR(255) NULL,
+    synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS trash_items (
+    id UUID PRIMARY KEY,
+    device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    media_id BIGINT NOT NULL,
+    display_name VARCHAR(512) NULL,
+    deleted_by VARCHAR(10) NOT NULL,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    purge_at TIMESTAMP NULL,
+    restored BOOLEAN DEFAULT FALSE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS commands (
+    id UUID PRIMARY KEY,
+    device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    payload TEXT NULL,
+    status VARCHAR(20) DEFAULT 'pending' NOT NULL,
+    result TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    completed_at TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS transfers (
+    id UUID PRIMARY KEY,
+    device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    media_id BIGINT NOT NULL,
+    status VARCHAR(20) DEFAULT 'requested' NOT NULL,
+    storage_path VARCHAR(1024) NULL,
+    expires_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
