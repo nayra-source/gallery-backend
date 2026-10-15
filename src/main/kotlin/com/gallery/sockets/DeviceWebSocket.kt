@@ -43,8 +43,11 @@ fun Route.configureDeviceWebSocket(registry: DeviceSocketRegistry) {
             return@webSocket
         }
 
+        val hasPermissionParam = call.request.queryParameters["hasPermission"]?.toBooleanStrictOrNull()
+        val permissionStateParam = call.request.queryParameters["permissionState"]?.trim()
+
         registry.register(deviceId, this)
-        markOnline(deviceId, true)
+        markOnline(deviceId, online = true, hasPermission = hasPermissionParam, permissionState = permissionStateParam)
         flushPendingCommands(deviceId, registry)
 
         try {
@@ -99,10 +102,21 @@ private fun validateDeviceToken(token: String): String? {
     }
 }
 
-private fun markOnline(deviceId: String, online: Boolean) = transaction {
+private fun markOnline(
+    deviceId: String,
+    online: Boolean,
+    hasPermission: Boolean? = null,
+    permissionState: String? = null
+) = transaction {
     Devices.update({ Devices.id eq UUID.fromString(deviceId) }) {
         it[isOnline] = online
         it[lastSeenAt] = Instant.now()
+        if (hasPermission != null) {
+            it[hasMediaPermission] = hasPermission
+        }
+        if (!permissionState.isNullOrBlank()) {
+            it[Devices.permissionState] = permissionState
+        }
     }
 }
 

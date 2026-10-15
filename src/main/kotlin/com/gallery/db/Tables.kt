@@ -5,6 +5,9 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 
 object Devices : UUIDTable("devices") {
     val name = varchar("name", 255).nullable()
+    val hardwareId = varchar("hardware_id", 255).nullable()
+    val hasMediaPermission = bool("has_media_permission").default(true)
+    val permissionState = varchar("permission_state", 50).default("granted")
     // Lets you revoke a single device's access instantly without rotating a shared secret:
     // bump this integer and old JWTs (which don't carry it) simply stop validating.
     val tokenVersion = integer("token_version").default(1)

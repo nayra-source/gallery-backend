@@ -33,8 +33,31 @@ import org.slf4j.event.Level
 import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-fun main() {
-    embeddedServer(Netty, port = System.getenv("PORT")?.toIntOrNull() ?: 8080, host = "0.0.0.0") {
+fun main(args: Array<String>) {
+    var host = System.getenv("SERVER_HOST") ?: System.getenv("HOST") ?: "0.0.0.0"
+    var port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+
+    var i = 0
+    while (i < args.size) {
+        when (args[i]) {
+            "--host", "-h" -> {
+                if (i + 1 < args.size) {
+                    host = args[i + 1]
+                    i++
+                }
+            }
+            "--port", "-p" -> {
+                if (i + 1 < args.size) {
+                    args[i + 1].toIntOrNull()?.let { port = it }
+                    i++
+                }
+            }
+        }
+        i++
+    }
+
+    println("Starting Gallery Backend server listening on http://$host:$port...")
+    embeddedServer(Netty, port = port, host = host) {
         module()
     }.start(wait = true)
 }

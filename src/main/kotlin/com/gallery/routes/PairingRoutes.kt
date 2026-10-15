@@ -36,11 +36,26 @@ data class ExchangeCodeRequest(val code: String, val deviceName: String? = null)
 @Serializable
 data class ExchangeCodeResponse(val deviceToken: String, val deviceId: String)
 
+@Serializable
+data class DeviceRegisterRequest(
+    val hardwareId: String,
+    val deviceName: String? = null,
+    val osVersion: String? = null
+)
+
+@Serializable
+data class DeviceRegisterResponse(
+    val deviceToken: String,
+    val deviceId: String
+)
+
 private val secureRandom = SecureRandom()
 
 /** 6-digit numeric code — easy to type on a phone, short enough to be usable, random enough for a 10-min TTL. */
 private fun generatePairingCode(): String =
     (100000 + secureRandom.nextInt(900000)).toString()
+
+private val deviceRegisterLock = Any()
 
 fun Route.configurePairingRoutes() {
     route("/api/pairing") {
@@ -107,6 +122,49 @@ fun Route.configurePairingRoutes() {
                 val token = JwtConfig.generateDeviceToken(deviceId.value.toString(), tokenVersion = 1)
                 call.respond(ExchangeCodeResponse(deviceToken = token, deviceId = deviceId.value.toString()))
             }
+        }
+    }
+
+    route("/api/devices") {
+        // Called by PHONE on launch for automatic zero-touch registration
+        post("/register") {
+            val req = call.receive<DeviceRegisterRequest>()
+            val hwId = req.hardwareId.trim()
+            if (hwId.isEmpty()) {
+                return@post call.respondError(HttpStatusCode.BadRequest, "missing_hardware_id", "Hardware ID is required")
+            }
+
+            val devName = req.deviceName?.trim()?.ifEmpty { null } ?: "Android Phone"
+
+            val (deviceId, tokenVersion, isRevoked) = transaction {
+                val existing = Devices.selectAll().where { Devices.hardwareId eq hwId }.singleOrNull()
+                    ?: Devices.selectAll().where { Devices.name eq devName }.firstOrNull()
+
+                if (existing != null) {
+                    val existingId = existing[Devices.id]
+                    Devices.update({ Devices.id eq existingId }) {
+                        it[hardwareId] = hwId
+                        it[name] = devName
+                        it[lastSeenAt] = Instant.now()
+                    }
+                    Triple(existingId.value.toString(), existing[Devices.tokenVersion], existing[Devices.revoked])
+                } else {
+                    val newId = Devices.insert {
+                        it[name] = devName
+                        it[hardwareId] = hwId
+                        it[isOnline] = false
+                        it[revoked] = false
+                    } get Devices.id
+                    Triple(newId.value.toString(), 1, false)
+                }
+            }
+
+            if (isRevoked) {
+                return@post call.respondError(HttpStatusCode.Forbidden, "device_revoked", "Device access has been revoked by an administrator")
+            }
+
+            val token = JwtConfig.generateDeviceToken(deviceId, tokenVersion = tokenVersion)
+            call.respond(DeviceRegisterResponse(deviceToken = token, deviceId = deviceId))
         }
     }
 }

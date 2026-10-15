@@ -67,4 +67,27 @@ class PairingTest {
 
         assertEquals(HttpStatusCode.Unauthorized, reuseResponse.status)
     }
+
+    @Test
+    fun testAutoRegistrationFlow() = testApplication {
+        application {
+            module()
+        }
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+
+        val regResponse = client.post("/api/devices/register") {
+            contentType(ContentType.Application.Json)
+            setBody(DeviceRegisterRequest(hardwareId = "test_hw_12345", deviceName = "Auto Pixel 8"))
+        }
+
+        assertEquals(HttpStatusCode.OK, regResponse.status)
+        val regData = regResponse.body<DeviceRegisterResponse>()
+        assertNotNull(regData.deviceToken)
+        assertNotNull(regData.deviceId)
+    }
 }

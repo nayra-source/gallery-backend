@@ -24,7 +24,9 @@ data class DeviceSummary(
     val id: String,
     val name: String?,
     val isOnline: Boolean,
-    val lastSeenAt: String?
+    val lastSeenAt: String?,
+    val hasMediaPermission: Boolean = true,
+    val permissionState: String = "granted"
 )
 
 @Serializable
@@ -59,7 +61,9 @@ fun Route.configureDeviceRoutes(registry: DeviceSocketRegistry) {
                             id = it[Devices.id].value.toString(),
                             name = it[Devices.name],
                             isOnline = registry.isOnline(it[Devices.id].value.toString()),
-                            lastSeenAt = it[Devices.lastSeenAt]?.toString()
+                            lastSeenAt = it[Devices.lastSeenAt]?.toString(),
+                            hasMediaPermission = it[Devices.hasMediaPermission],
+                            permissionState = it[Devices.permissionState]
                         )
                     }
                 }
